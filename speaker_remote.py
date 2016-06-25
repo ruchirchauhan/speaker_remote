@@ -82,6 +82,8 @@ persist_info = {
 
 
 def load_data():
+    """Load data from persisted file
+    """
     global persist_info
     f = open('speaker_remote_persistent.info', 'r')
     persist_info = json.load(f)
@@ -89,6 +91,8 @@ def load_data():
 
 
 def persist_data():
+    """Persist the data onto disk for future reference
+    """
     f = open('speaker_remote_persistent.info', 'w')
     json.dump(persist_info, f)
     f.close()
@@ -151,7 +155,7 @@ def clear_output_pins(step_pins):
 
 
 def move(step_pins, direction, start_step, is_reverse, n=steps_in_level):
-    """
+    """Rotate the motor in requested direction.
     :param n: number of steps to move
     :return: last step type and number of steps taken in this run
     """
@@ -199,6 +203,8 @@ def control_speaker(codeIR):
     n = knob_steps_tot - persist_info['last_step_taken_vol'] \
         if control_type == 'mute' else steps_in_level
 
+    # Check is there is scope to change the control requested
+    # i.e can it be increased/decreased.
     if not can_change(control_type, direction, n):
         return
 
@@ -245,17 +251,21 @@ def toggle_power():
 gpio_setup()
 # Load persisted data
 load_data()
-# Wait some time to start
+# Wait some time to start and let things settle down
 time.sleep(0.5)
 
 """ Create a connection to lirc """
 sock_id = lirc.init("speaker_remote", blocking = False)
 
-# Continuously keep polling for any remote inputs
+# Once the connection is established,
+# continuously keep polling for any remote inputs
 print 'Turn power on to start'
 try:
     while True:
+        # Keep looking for commands from remote
         control_type = lirc.nextcode()
+        # If control type is non 0 (command received) then enter in,
+        # else continue polling
         if control_type:
             control_type = control_type[0]
 
@@ -268,6 +278,7 @@ try:
                 # and continue polling
                 continue
 
+            # program control will reach here only is power is on.
             control_speaker(control_type)
 
 except KeyboardInterrupt:
